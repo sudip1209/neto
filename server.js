@@ -23,11 +23,25 @@
 // module.exports = app;
 
 
+const mongoose = require("mongoose");
 const dotenv = require("dotenv");
-dotenv.config({ path: "./config.env" });
 
+dotenv.config({ path: "./config.env" });
 const app = require("./app");
 
-// 🚨 No DB connection here
+const DB = process.env.DATABASE.replace(
+  "<PASSWORD>",
+  process.env.DATABASE_PASSWORD
+);
+
+mongoose
+  .connect(DB)
+  .then(() => console.log("✅ DB connection successful!"))
+  .catch((err) => {
+    console.error("❌ DB connection error:", err.message);
+    process.exit(1);
+  });
+
+// ❌ Don’t use app.listen() on Vercel
 module.exports = app;
 
