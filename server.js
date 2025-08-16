@@ -1,28 +1,3 @@
-// const mongoose = require("mongoose");
-// const dotenv = require("dotenv");
-
-// dotenv.config({ path: "./config.env" });
-// const app = require("./app");
-
-// const DB = process.env.DATABASE.replace(
-//   "<PASSWORD>",
-//   process.env.DATABASE_PASSWORD
-// );
-
-// // Connect to MongoDB
-// mongoose
-//   .connect(DB, {})
-//   .then(() => console.log("DB connection successful!"))
-//   .catch((err) => {
-//     console.error("DB connection error:", err.message);
-//     process.exit(1);
-//   });
-
-// // 🚨 Do NOT call app.listen here for Vercel
-// // Just export the app
-// module.exports = app;
-
-
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 
@@ -34,14 +9,18 @@ const DB = process.env.DATABASE.replace(
   process.env.DATABASE_PASSWORD
 );
 
+// Connect to MongoDB
 mongoose
-  .connect(DB)
-  .then(() => console.log("✅ DB connection successful!"))
+  .connect(DB, {})
+  .then(() => console.log("DB connection successful!"))
   .catch((err) => {
-    console.error("❌ DB connection error:", err.message);
+    console.error("DB connection error:", err.message);
     process.exit(1);
   });
 
-// ❌ Don’t use app.listen() on Vercel
+// 🚨 Do NOT call app.listen here for Vercel
+// Just export the app
 module.exports = app;
+
+
 
