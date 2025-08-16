@@ -1,4 +1,3 @@
-const pug = require("pug");
 const path = require("path");
 const express = require("express");
 const morgan = require("morgan");
@@ -8,6 +7,7 @@ const mongoSanitize = require("express-mongo-sanitize");
 const xss = require("xss-clean");
 const hpp = require("hpp");
 const cookieParser = require("cookie-parser");
+const cors = require("cors");
 
 const AppError = require("./utils/appError");
 const globalErrorHandler = require("./controllers/errorController");
@@ -15,46 +15,26 @@ const tourRouter = require("./routes/tourRoutes");
 const userRouter = require("./routes/userRoutes");
 const reviewRouter = require("./routes/reviewRoutes");
 const viewRouter = require("./routes/viewRoutes");
-const cors = require("cors");
+
 const app = express();
 
+// Pug setup
 app.set("view engine", "pug");
 app.set("views", path.join(__dirname, "views"));
 
-// 1) Global MIDDLEWARES
-// Serving static files
+// 1) GLOBAL MIDDLEWARES
+// Static files
 app.use(express.static(path.join(__dirname, "public")));
 
-// app.use((req, res, next) => {
-//   res.header("Access-Control-Allow-Origin", "http://localhost:3000");
-//   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
-//   res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-//   next();
-// });
+// Security headers
 // app.use(helmet());
-// app.use((req, res, next) => {
-//   res.setHeader(
-//     "Content-Security-Policy",
-//     "default-src 'self'; connect-src 'self' ws:;"
-//   );
-//   next();
-// });
 
-// app.use(
-//   cors({
-//     credentials: true,
-//     origin: "http://localhost:3000", // Explicitly allow this origin
-//   })
-// );
-// app.options("*", cors());
-// app.use(cors());
-
-// Development logging
+// Logging (dev only)
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 
-// Limit requests from same API
+// Rate limiting
 const limiter = rateLimit({
   max: 100,
   windowMs: 60 * 60 * 1000,
@@ -62,15 +42,13 @@ const limiter = rateLimit({
 });
 app.use("/api", limiter);
 
-// Body parser, reading data from body into req.body
+// Body parsers
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
 
-// Data sanitization against NoSQL query injection
+// Data sanitization
 app.use(mongoSanitize());
-
-// Data sanitization against XSS
 app.use(xss());
 
 // Prevent parameter pollution
@@ -82,40 +60,31 @@ app.use(
       "ratingsAverage",
       "maxGroupSize",
       "difficulty",
-      "price",
-    ],
+      "price"
+    ]
   })
 );
 
-app.use((err, req, res, next) => {
-  console.error("Global error handler:", err);
-  console.error("Stack trace:", err.stack);
-
-  // Pass to `sendErrorProd` or respond here as needed
-  sendErrorProd(err, req, res);
-});
-
-// Test middleware to log request time and cookies
+// Test middleware
 app.use((req, res, next) => {
   req.requestTime = new Date().toISOString();
-  console.log("Request Time:", req.requestTime); // Log request time
-  console.log("Cookies:", req.cookies); // Log cookies
+  console.log("Request Time:", req.requestTime);
+  console.log("Cookies:", req.cookies);
   next();
 });
 
-// 3) ROUTES
-
-// Define routes for different parts of the application
+// 2) ROUTES
 app.use("/", viewRouter);
 app.use("/api/v1/tours", tourRouter);
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/reviews", reviewRouter);
 
-// Handle all undefined routes with a 404 error
+// 404 handler
 app.all("*", (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });
 
+// GLOBAL ERROR HANDLER
 app.use(globalErrorHandler);
 
 module.exports = app;
